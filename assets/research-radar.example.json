@@ -17,6 +17,6 @@
   },
   "downloads": {
     "main_pdf": true,
-    "include_si": false
+    "include_si": true
   }
 }

@@ -1,6 +1,6 @@
 ---
 name: research-radar-zotero
-description: 生成 Obsidian 每日论文推荐并同步 Zotero 分类与正文 PDF；按指定论文或日报编号生成配有原图、公式算例和通俗严谨讲解的精读笔记，支持旧笔记补图并联动阅读索引。
+description: 生成 Obsidian 每日论文推荐并同步 Zotero 分类、正文 PDF 与对应补充材料；按指定论文或日报编号生成配有原图、公式算例和通俗严谨讲解的精读笔记，支持旧笔记补图并联动阅读索引。
 ---
 
 # Research Radar + Zotero
@@ -13,7 +13,7 @@ description: 生成 Obsidian 每日论文推荐并同步 Zotero 分类与正文 
 2. 项目如有 `research-radar.local.json`，读取其路径、时区、Zotero 分类及授权偏好；相对路径相对于项目目录。没有配置时参考 [配置说明](references/configuration.md) 和 [示例配置](assets/research-radar.example.json)，只询问真正缺失的目标或偏好。
 3. 根据请求选择：**完整推荐**、**仅补做 Zotero/PDF 同步**、**初始化模板/配置**、**指定论文精读**。同日推荐已完成时不重复推荐；用户明确要求精读时进入精读分支，保留人工文字、阅读状态与复选框。
 
-`auto_import` 必须来自用户明确授权或用户确认的持续配置；仅要求推荐论文，不代表授权修改 Zotero。已授权的每日自动入库不重复询问。下载范围由用户选择；若未说明是否需要补充材料，先确认一次，保存偏好供后续运行使用。示例仅正文、不含 SI，不强加给其他用户。
+`auto_import` 必须来自用户明确授权或用户确认的持续配置；仅要求推荐论文，不代表授权修改 Zotero。已授权的每日自动入库不重复询问。已授权获取文献时，默认同时尝试正文 PDF 与该论文对应的补充材料（SI），示例配置为 `downloads.include_si: true`。保留项目中明确的下载选择；用户修改范围时同步配置及存在的旧提示词，后续沿用最新选择，不重复询问。下载成功与实际阅读范围分别记录。
 
 ## 完整推荐
 
@@ -26,7 +26,7 @@ description: 生成 Obsidian 每日论文推荐并同步 Zotero 分类与正文 
 - 标明全文/摘要证据边界，区分论文结论与给用户的研究启发。热点没有量化证据时标为 `Emerging / Trending Candidate` 并解释实际观察。
 - 按用户模板生成 `Daily Papers/YYYY-MM-DD.md`，每篇保留“进行精读”复选框与用户已有选择，不创建单篇永久笔记。没有模板时，可在用户授权的初始化步骤复制 [默认模板](assets/daily-template.md)。
 
-## Zotero 与正文 PDF
+## Zotero、正文 PDF 与补充材料
 
 需要同步时读取 [Zotero 与 PDF 流程](references/zotero-pdf.md)。
 
@@ -35,6 +35,7 @@ description: 生成 Obsidian 每日论文推荐并同步 Zotero 分类与正文 
 3. 优先复用可读的正文附件。缺少时尝试合法出版社 PDF、机构库、PMC、arXiv 或用户已授权的机构访问；说明正式版/接受稿/预印本版本。
 4. 核验真实 PDF、非空页数和论文身份，再作为对应条目的本地子附件保存。仅保存 URL 不算下载成功。
 5. 生成真实链接：`zotero://select/library/items/父条目KEY` 与 `zotero://open-pdf/library/items/PDF附件KEY`。群组库采用其实际 group ID；不能把数字 itemID、BibTeX key 或父条目 key 当成 PDF key。
+6. `include_si` 启用时，即使正文已复用，也检查出版社、官方补充材料页面或对应仓储列出的 SI；逐份核验与论文的身份关联，支持 PDF、表格、数据压缩包等原始格式，分别保存为同一父条目的本地子附件。不把 SI 误当正文，不仅凭 URL 算成功；已存附件复用，未知、官方未提供及下载失败分开记录。
 
 本地 API 不可读时，提供的只读助手可在明确的数据目录上检查一致快照：
 
@@ -55,7 +56,7 @@ python scripts/zotero_inspect.py inspect --data-dir <Zotero数据目录> --colle
 
 ## 输出与重跑
 
-Daily 页面末尾必须有“Zotero 入库与 PDF 下载提醒”，列出目标分类、新建/复用/失败条目数、新增/复用/缺失 PDF 数。
+Daily 页面末尾必须有“Zotero 入库与 PDF 下载提醒”，列出目标分类、新建/复用/失败条目数、新增/复用/缺失正文 PDF 数及补充材料逐文件结果。启用 SI 时，只有正文与已识别 SI 均核验，或官方明确未提供 SI，才报告当前下载范围全部完成。
 
 - 异常逐篇列出标题、失败阶段、已尝试来源、原因、原文链接、已有 Zotero 条目链接与下一步。
 - 只有预印本可得时明确提示最终版未取得。全部完成则写明无需补充。

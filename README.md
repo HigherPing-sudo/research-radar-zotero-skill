@@ -1,6 +1,6 @@
 # Research Radar + Zotero
 
-读取最新研究画像，生成 Obsidian 每日论文推荐；按授权将文献保存到指定 Zotero 分类，获取合法可得的正文 PDF，并在日报末尾提醒缺失项。
+读取最新研究画像，生成 Obsidian 每日论文推荐；按授权将文献保存到指定 Zotero 分类，获取合法可得的正文 PDF及对应补充材料，并在日报末尾提醒缺失项。
 
 研究画像 → 多源检索 → 比较筛选与去重 → 每日分析 → Zotero 指定分类 → 正文附件核验 → Obsidian 阅读与跟进。
 
@@ -155,7 +155,7 @@ Codex 的用户级手动安装目录可用 `~/.agents/skills/research-radar-zote
   },
   "downloads": {
     "main_pdf": true,
-    "include_si": false
+    "include_si": true
   }
 }
 ```
@@ -165,7 +165,7 @@ Codex 的用户级手动安装目录可用 `~/.agents/skills/research-radar-zote
 - `collection_name`：改为目标分类。让 agent 查询并核验真实文库和 collection key，再保存 `collection_key`；不要复制其他用户的 key 或本机数字 collectionID。
 - `data_dir`：可选的 Zotero 数据目录，来自 Zotero 设置中的真实位置，内含 `zotero.sqlite`。它不是程序安装目录或 Obsidian 附件目录。Windows 路径在 JSON 中可用 `D:/Zotero/data`，或对反斜杠写双重转义。
 - `auto_import`：示例为 `false`。明确授权每日自动保存后，再由 agent 将确认后的偏好记为 `true`。
-- `main_pdf` / `include_si`：示例仅正文、不含 Supporting Information（SI）。首次确定下载范围并保存，后续沿用；需要 SI 的用户可另行选择。
+- `main_pdf` / `include_si`：示例默认同时获取正文与对应Supporting Information（SI）。保留用户明确的范围选择；用户修改后保存最新偏好，后续沿用。
 - `timezone`：用于运行日期和检索时间窗口。09:30 等执行时刻由 Scheduled Task 管理。
 
 完整字段说明见 [references/configuration.md](references/configuration.md)。
@@ -179,7 +179,7 @@ Codex 的用户级手动安装目录可用 `~/.agents/skills/research-radar-zote
 最新 Research Profile.md 和现有 Daily 模板，生成今天的论文推荐。
 允许自动创建缺少的 Zotero 条目，并把新建和复用条目都加入
 “我的文库 / 光谱分析”，保留条目原有的其他分类。
-只下载论文正文 PDF，不下载 SI；已有可用正文直接复用。
+同时尝试正文 PDF 与对应补充材料（SI），分别核验并保存到同一父条目；已有可用附件直接复用。
 首次核验目标分类后，将真实 collection key 和这些已确认偏好保存到本机配置。
 在每篇简介中填写真实 Zotero 条目链接和本地 PDF 链接；
 缺失 PDF、分类归入失败及其他待处理事项写在日报最后。
@@ -195,7 +195,7 @@ Codex 的用户级手动安装目录可用 `~/.agents/skills/research-radar-zote
 3. 比较候选后，默认推荐 2 篇高相关（可含一篇相关扩展）和 1 篇个性化热点；质量不足时少推。
 4. 核验题录与版本关系，按 DOI、arXiv 等去重；明确分析基于摘要还是全文。
 5. 创建当日日报，复用或创建 Zotero 条目，核验其确实属于指定分类。
-6. 复用已有正文，或尝试合法来源的 PDF；核验论文身份及本地子附件后再写入链接。
+6. 复用或尝试合法获取正文及对应SI；分别核验身份、文件角色及本地子附件，再写入链接。正文复用时也检查SI。
 7. 更新历史与同步记录，在日报末尾汇总成功、缺失和失败。
 
 首次运行后，检查以下结果：
@@ -204,11 +204,11 @@ Codex 的用户级手动安装目录可用 `~/.agents/skills/research-radar-zote
 |---|---|
 | `Daily Papers/YYYY-MM-DD.md` | 题录、分析依据、中文简介、推荐理由、阅读判断区及页末同步结果 |
 | Zotero 指定分类 | 对应文献；复用条目也属于该分类 |
-| Zotero 文献下的附件 | 可在本机打开的正文 PDF；预印本回退有版本标注 |
+| Zotero 文献下的附件 | 可在本机打开的正文PDF与对应SI；SI保留PDF、表格或ZIP等原格式，预印本回退有版本标注 |
 | 日报的 Zotero 链接 | 可定位父条目；PDF 链接可打开对应附件 |
 | 日报页末 | 逐篇列出需处理事项；全部完成时明确无需补充 |
 
-“已创建条目”“已归入分类”“已保存正文附件”分别核验。找不到 PDF 时仍保留推荐与条目；只获取到预印本时说明正式版尚未取得。
+“已创建条目”“已归入分类”“已保存正文”“补充材料状态”分别核验。正文成功但SI待处理时保留正文成功，并单列SI原因；只有官方已核实才写“未提供”。找不到PDF仍保留推荐与条目，只获取预印本时说明正式版尚未取得；下载不表示已经精读。
 
 ## 6. 阅读和管理论文
 
@@ -251,7 +251,7 @@ Codex 的用户级手动安装目录可用 `~/.agents/skills/research-radar-zote
 把当前 Research Radar 流程设置为每日 Scheduled Task，
 每天 09:30，时区 Asia/Shanghai，在当前本地项目运行。
 每次调用 $research-radar-zotero，并重新读取 research-radar.local.json、
-最新研究画像、模板和历史；沿用已确认的指定分类、自动入库及仅正文 PDF 偏好。
+最新研究画像、模板和历史；沿用已确认的指定分类、自动入库及正文与补充材料下载范围。
 同日已有推荐时只补未完成的同步，保留人工判断。
 如果已有同类任务，请更新它，避免重复创建。
 ```
@@ -266,7 +266,7 @@ Codex 的用户级手动安装目录可用 `~/.agents/skills/research-radar-zote
 
 ```text
 使用 $research-radar-zotero，仅补做 Daily Papers/YYYY-MM-DD.md 中
-尚未完成的 Zotero 分类归入和正文 PDF 同步，不重新推荐论文。
+尚未完成的 Zotero 分类归入、正文PDF与补充材料同步，不重新推荐论文。
 先复查现有条目与附件，更新链接、同步记录和页末提醒，
 保留阅读状态、复选框和我的文字。
 ```
