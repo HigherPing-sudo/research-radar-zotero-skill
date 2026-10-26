@@ -1,6 +1,6 @@
 ---
 name: research-radar-zotero
-description: 生成 Obsidian 每日论文推荐，同步指定 Zotero 分类与正文 PDF；用户要求精读某天第几篇论文时，定位原文并按模板生成关联阅读索引的精读笔记。用于论文雷达、Zotero 同步和日报论文精读。
+description: 生成 Obsidian 每日论文推荐并同步 Zotero 分类与正文 PDF；按指定论文或日报编号生成配有原图、公式算例和通俗严谨讲解的精读笔记，支持旧笔记补图并联动阅读索引。
 ---
 
 # Research Radar + Zotero
@@ -45,9 +45,11 @@ python scripts/zotero_inspect.py inspect --data-dir <Zotero数据目录> --colle
 
 助手**不修改 Zotero、不下载文件**。写入和下载由实际可用的工具完成；没有可用写入接口时报告具体失败，不把只读核验当作同步完成。脚本只核验 PDF 文件头和文件存在性，内容及页数仍需 PDF 解析工具确认。
 
-## 指定论文精读
+## 指定论文精读与旧笔记更新
 
 用户提及“精读某天第几篇 / 今天 Paper 2 / 讲透昨天第 1 篇”时，读取 [精读流程](references/deep-reading.md)。先按日期和编号定位日报原文与真实 Zotero PDF，再读取当前可用的适合精读的 skill（普通精读优先 nature-paper-xray）。按项目模板生成 `Note/推荐日期-Paper数字-论文题名.md`，回链日报，并让阅读索引合并显示。仅创建功能/模板的请求不提前精读论文。
+
+直接指定论文或已有笔记、补配图、细化讲解时也进入此分支。精读默认采用[图文精读与增量更新](references/illustrated-reading.md)：把关键原图嵌在相关讲解旁，解释读图方法、机制、算例和证据边界，使用严谨且易懂的中文。图表证据表与原图讲解共同交付；图片提取可用 `scripts/extract_paper_figures.py`，实际查看裁切结果后再嵌入。
 
 模板默认 [deep-reading-template.md](assets/deep-reading-template.md)，本机位置由 `deep_read_template` 配置。笔记元数据记录来源日期、编号、真实 Zotero URI 和实际阅读范围；`status` 是用户阅读进度，生成完成只更新 `analysis_status`，不代替用户标为已读。缺少其他精读 skill 时，按精读流程与模板独立完成并如实说明来源范围。
 

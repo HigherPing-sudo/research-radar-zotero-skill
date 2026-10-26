@@ -75,5 +75,16 @@ async function render(notes,raw=daily,bodies={}) {
   r=await render([note(2),note(2,'done','duplicate.md')],daily,comments('## 我的批注与下一步\n- **评论判断：** 不能任取这条'));
   assert.equal(commentRow(r),'待核对');
   r=await render([],daily);assert(r.rows.every(row=>row[6]==='未填写'));
+  const personal={type:'literature',title:'Personal paper',source_date:'',paper_number:0,read_date:'2026-10-26',status:'reading',template:false,file:{path:'Research Radar/Note/2026-10-26-personal.md',name:'2026-10-26-personal'}};
+  r=await render([personal]);assert.equal(r.rows.length,4);
+  assert.equal(r.rows.find(row=>row[0].title==='Personal paper')[1],'2026-10-26 · 自主精读');
+  assert.equal(r.rows.find(row=>row[0].title==='Personal paper')[5],'是');
+  r=await render([{...personal,read_date:undefined,template:true}]);assert(r.headers.includes('✅ 已读（1）'));
+  assert.equal(r.rows.find(row=>row[0].title==='Personal paper')[1],'2026-10-26 · 自主精读');
+  const deferred=daily.replace('- **Title:** Sample 2','- **Title:** Sample 2\n- [x] 暂不处理');
+  r=await render([note(2,'done')],deferred);assert.equal(r.rows.length,2);
+  assert(!r.rows.some(row=>row[0].title==='Sample 2'));assert(r.paragraphs[1].includes('0/2'));
+  r=await render([note(2,'done')],deferred.replace('[x] 暂不处理','[ ] 暂不处理'));assert.equal(r.rows.length,3);
+  assert(r.rows.some(row=>row[0].title==='Sample 2'));assert(r.headers.includes('✅ 已读（1）'));
   console.log(`Reading index: ${scenarios} scenarios passed (merge, completion checkbox, selection, template exclusion, conflicts, orphan, fenced examples)`);
 })().catch(e=>{console.error(e);process.exitCode=1;});
