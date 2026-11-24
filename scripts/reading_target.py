@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import tempfile
 
 from zotero_inspect import snapshot, attachment_path, normalize_doi, normalize_title
 
@@ -211,11 +212,19 @@ def link(project, day, number, note_path):
     encoded=''.join(lines).encode('utf-8')
     if raw.startswith(b'\xef\xbb\xbf'):
         encoded=b'\xef\xbb\xbf'+encoded
-    if daily.read_bytes()!=raw:
-        raise ValueError('Daily changed during linking; retry after re-reading')
-    pending=daily.with_name(daily.name+'.pending')
-    pending.write_bytes(encoded)
-    pending.replace(daily)
+    pending = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode='wb', dir=daily.parent, prefix=f'.{daily.name}.', suffix='.pending', delete=False
+        ) as stream:
+            pending = Path(stream.name)
+            stream.write(encoded)
+        if daily.read_bytes() != raw:
+            raise ValueError('Daily changed during linking; retry after re-reading')
+        pending.replace(daily)
+    finally:
+        if pending is not None:
+            pending.unlink(missing_ok=True)
     return {'changed':True,'note_wikilink':f'[[{target}]]'}
 
 

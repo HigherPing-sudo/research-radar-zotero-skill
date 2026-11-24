@@ -1,9 +1,12 @@
 import json
+from contextlib import contextmanager
+import os
 from pathlib import Path
 import sqlite3
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 import reading_target as rt
@@ -114,6 +117,50 @@ Keep summary.
         self.assertTrue(rt.link(self.root,'2026-10-22',2,str(note.relative_to(self.root)))['changed'])
         self.assertFalse(rt.link(self.root,'2026-10-22',2,str(note.relative_to(self.root)))['changed'])
         self.assertEqual(note.read_bytes(),before)
+
+    def test_link_preserves_preexisting_pending_hard_link(self):
+        note = self.make_note()
+        with tempfile.TemporaryDirectory() as outside:
+            unrelated = Path(outside) / 'unrelated.txt'
+            original = b'Unrelated file contents'
+            unrelated.write_bytes(original)
+            pending = self.daily.with_name(self.daily.name + '.pending')
+            os.link(unrelated, pending)
+
+            result = rt.link(self.root, '2026-10-22', 2, str(note.relative_to(self.root)))
+
+            self.assertTrue(result['changed'])
+            self.assertEqual(unrelated.read_bytes(), original)
+            self.assertEqual(pending.read_bytes(), original)
+            self.assertCountEqual(self.daily.parent.iterdir(), [self.daily, pending])
+
+    def test_link_cleans_temporary_file_when_replacement_fails(self):
+        note = self.make_note()
+        before = self.daily.read_bytes()
+        with patch.object(Path, 'replace', side_effect=OSError('Replacement failed')):
+            with self.assertRaisesRegex(OSError, 'Replacement failed'):
+                rt.link(self.root, '2026-10-22', 2, str(note.relative_to(self.root)))
+
+        self.assertEqual(self.daily.read_bytes(), before)
+        self.assertEqual(list(self.daily.parent.iterdir()), [self.daily])
+
+    def test_link_preserves_daily_edited_while_writing_temporary_file(self):
+        note = self.make_note()
+        edited = self.daily.read_bytes() + b'Concurrent annotation\r\n'
+        create_temp = rt.tempfile.NamedTemporaryFile
+
+        @contextmanager
+        def edit_after_write(*args, **kwargs):
+            with create_temp(*args, **kwargs) as stream:
+                yield stream
+            self.daily.write_bytes(edited)
+
+        with patch.object(rt.tempfile, 'NamedTemporaryFile', edit_after_write):
+            with self.assertRaisesRegex(ValueError, 'Daily changed during linking'):
+                rt.link(self.root, '2026-10-22', 2, str(note.relative_to(self.root)))
+
+        self.assertEqual(self.daily.read_bytes(), edited)
+        self.assertEqual(list(self.daily.parent.iterdir()), [self.daily])
 
     def test_unchecked_note_preserves_its_reading_status(self):
         self.make_note(template=False,status='reading')
